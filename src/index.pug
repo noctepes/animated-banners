@@ -1,0 +1,71 @@
+doctype html
+html(lang="en")
+  head
+    meta(charset="UTF-8")
+    meta(http-equiv="X-UA-Compatible", content="IE=edge")
+    meta(name="viewport", content="width=device-width, initial-scale=1.0")
+    title Animated Banner Overview
+    style.
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+      }
+
+      .frame-display {
+        border:none;
+        box-shadow: rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;
+      }
+  body 
+    - 
+      var bannerFormat = [
+        {
+          // Version 01
+          title: "",
+          size: [
+            {
+              w: "160",
+              h: "600"
+            },
+            {
+              w: "300",
+              h: "250"
+            },
+            {
+              w: "300",
+              h: "300"
+            },
+            {
+              w: "300",
+              h: "431"
+            },
+            {
+              w: "300",
+              h: "600"
+            },
+            {
+              w: "620",
+              h: "891"
+            },
+            {
+              w: "980",
+              h: "120"
+            },
+            {
+              w: "980",
+              h: "400"
+            }
+          ]
+        }
+      ]
+
+    if (bannerFormat)
+      each banner in bannerFormat
+        h1 #{banner.title}
+        each size in banner.size
+          div(style='display: inline-block; margin-right: 20px;')
+            p #{size.w}x#{size.h}
+            if (banner.title !== "")
+              iframe(src=`./${banner.title}/${size.w}x${size.h}/index.html` class="frame-display" style=`width:${size.w}px; height:${size.h}px;`)
+            else 
+              iframe(src=`./${size.w}x${size.h}/index.html` class="frame-display" style=`width:${size.w}px; height:${size.h}px;`)
+    else
+      p Please check again the variables.
