@@ -1,116 +1,167 @@
-var { gulp, parallel, series, src, dest, watch } = require("gulp");
-var del = require("del");
-var plumber = require("gulp-plumber");
-var newer = require("gulp-newer");
-var rename = require("gulp-rename");
+const { gulp, parallel, series, src, dest, watch } = require("gulp");
+const fs = require("fs");
+const plumber = require("gulp-plumber");
+const newer = require("gulp-newer");
+const rename = require("gulp-rename");
 
-var pug = require("gulp-pug");
-var uglify = require("gulp-uglify");
-var htmlmin = require("gulp-htmlmin");
-var strReplace = require("gulp-string-replace");
-var imagemin = require("gulp-imagemin");
-// var pngquant = require("imagemin-pngquant");
-// var mozjpeg = require("imagemin-mozjpeg");
+const pug = require("gulp-pug");
+const uglify = require("gulp-uglify");
+const htmlmin = require("gulp-htmlmin");
+const strReplace = require("gulp-string-replace");
+const imagemin = require("gulp-imagemin");
+const tinypng = require("gulp-tinypng-extended");
 
-var currentProject = {
-  name: "3044134_MTO_Friends_Media Banners Packages_2HY22", // <-- Replace project folder here
-  input: "./src/",
-  output: "./dist/",
+/*=====  Start of tinyPNG Account  ======*/
 
-  workDir: "/2. Working/Awareness", // <-- Change the Animated Folder here
-  deliDir: "/2b. Progress/",
-  doneDir: "/3. Done/",
+// Free tinyPNG accounts
+const tinyPNGAccounts = [
+  {
+    email: "toan.huynh@spring-production.com",
+    key: "HCZ9GFy7z18gPrnSGy4t3vmVkK31qx8P",
+  },
+  {
+    email: "kami.shino1000@gmail.com",
+    key: "b4jzygsdt58wLWF224sNhhJYD7p4KXt4",
+  },
+  {
+    email: "kami.shino70411@gmail.com",
+    key: "T2sQsq948BGZSCqvFCKC5dhgkPn9rmr2",
+  },
+
+  // Temporary Email
+  {
+    email: "hilmugugne@vusra.com",
+    key: "HwW87YCYGlCyS6YB63scCcvqNmnlvs3X",
+  },
+  {
+    email: "erla11@wmqrhabits.com",
+    key: "CplxXxkJhP1TS0wL97DVrrk2zh1jMYlS",
+  },
+];
+
+// Change the account here - start with index = 0
+const TINY_PNG_API = tinyPNGAccounts[0].key || "HCZ9GFy7z18gPrnSGy4t3vmVkK31qx8P";
+
+/*=====  End of tinyPNG Account  ======*/
+
+/*=====  Start of Setup project folder path  ======*/
+
+const folderPath = {
+  brief: "1. Src",
+  working: "2. Working",
+  progress: "2b. Progress",
+  done: "3. Done",
+  delivery: "4. Delivery",
 };
 
-var workingDir = currentProject.input + currentProject.name + currentProject.workDir;
-var deliverDir = currentProject.input + currentProject.name + currentProject.deliDir;
-var doneDir = currentProject.input + currentProject.name + currentProject.doneDir;
+const currentProject = {
+  input: "./src/", // <-- Every project must be created in this folder - You can change the path if you want
+  output: "./dist/",
 
-var clickTagURL = "";
+  name: "_Sample", // <-- Change the folder name here
 
-function cleanDeliverFiles() {
-  return del(deliverDir);
-}
+  workDir: `/${folderPath.working}`,
+  progDir: `/${folderPath.progress}`,
+  doneDir: `/${folderPath.done}`,
+  deliDir: `/${folderPath.delivery}`,
+};
 
-function cleanWorkingFiles() {
-  return del([workingDir + "/**/*.*", workingDir + "/**/*/.DS_Store", "!" + workingDir + "/**/*.fla"]);
-}
+const currentWorkingDir = currentProject.input + currentProject.name + currentProject.workDir;
+const currentProgressDir = currentProject.input + currentProject.name + currentProject.progDir;
+const currentDoneDir = currentProject.input + currentProject.name + currentProject.doneDir;
+const currentDeliveryDir = currentProject.input + currentProject.name + currentProject.deliDir;
 
-function moveReadyFiles() {
-  return src(deliverDir + "/**/*.*")
-    .pipe(plumber())
-    .pipe(dest(doneDir));
-}
+const CLICKTAG_URL = ""; // <-- Add the clickTag URL
 
-function htmlOverview() {
-  return src("./src/index.pug")
+/*=====  End of Setup project folder path  ======*/
+
+function createHTMLOverview() {
+  return src(currentProject.input + "index.pug")
     .pipe(plumber())
     .pipe(
       pug({
         pretty: true,
       })
     )
-    .pipe(dest(deliverDir));
+    .pipe(dest(currentProgressDir));
 }
 
 function minifyJS() {
-  return src(workingDir + "/**/*.js")
+  return src(currentWorkingDir + "/**/*.js")
     .pipe(plumber())
-    .pipe(newer(deliverDir))
+    .pipe(newer(currentProgressDir))
     .pipe(uglify())
-    .pipe(dest(deliverDir));
+    .pipe(dest(currentProgressDir));
 }
 
 function minifyHTML() {
-  return src(workingDir + "/**/*.html")
+  console.log(currentWorkingDir + "/**/*.html");
+
+  return src(currentWorkingDir + "/**/*.html")
     .pipe(plumber())
-    .pipe(newer(deliverDir))
+    .pipe(newer(currentProgressDir))
     .pipe(
       htmlmin({
         minifyJS: true,
       })
     )
-    .pipe(strReplace(`clickTag=""`, `clickTag="${clickTagURL}"`))
+    .pipe(strReplace(`clickTag=""`, `clickTag="${CLICKTAG_URL}"`))
     .pipe(
       rename({
         basename: "index",
         extname: ".html",
       })
     )
-    .pipe(dest(deliverDir));
+    .pipe(dest(currentProgressDir));
 }
 
-function optimizeImages() {
-  return src(workingDir + "/**/*.{png,jpg,jpeg,gif,ico,svg}")
+function minifyImages() {
+  return src(currentWorkingDir + "/**/*.{png,jpg,jpeg,gif,ico,svg}")
     .pipe(plumber())
-    .pipe(newer(deliverDir))
-    .pipe(imagemin([imagemin.gifsicle({ interlaced: true }), imagemin.mozjpeg({ quality: 75, progressive: true }), imagemin.optipng({ optimizationLevel: 5 })]))
-    .pipe(dest(deliverDir));
+    .pipe(newer(currentProgressDir))
+    .pipe(
+      imagemin([
+        imagemin.gifsicle({ interlaced: true }),
+        imagemin.mozjpeg({ quality: 85, progressive: true }),
+        imagemin.optipng({ optimizationLevel: 6 }),
+      ])
+    )
+    .pipe(dest(currentProgressDir));
 }
 
-function copyImages() {
-  return src(workingDir + "/**/*.{png,jpg,jpeg,gif,ico,svg}")
+function useTinyPNG() {
+  return src(currentWorkingDir + "/**/*.{png,jpg,jpeg}")
     .pipe(plumber())
-    .pipe(newer(deliverDir))
-    .pipe(dest(deliverDir));
+    .pipe(newer(currentProgressDir))
+    .pipe(
+      tinypng({
+        key: TINY_PNG_API,
+        log: true,
+        summarise: true,
+      })
+    )
+    .pipe(dest(currentProgressDir));
+}
+
+function copyLoader() {
+  return src(currentWorkingDir + "/**/*.gif").pipe(dest(currentProgressDir));
 }
 
 function watchSource() {
-  watch(workingDir + "/**/*.js", series(minifyJS));
-  watch(workingDir + "/**/*.html", series(minifyHTML));
-  watch(workingDir + "/**/*.{png,jpg,jpeg,gif,ico,svg}", series(optimizeImages));
+  watch(currentWorkingDir + "/**/*.js", series(minifyJS));
+  watch(currentWorkingDir + "/**/*.html", series(minifyHTML));
+  watch(currentWorkingDir + "/**/*.{png,jpg,jpeg,gif,ico,svg}", series(minifyImages));
 }
 
 exports.minifyJS = series(minifyJS);
 exports.minifyHTML = series(minifyHTML);
-exports.optimizeImages = series(optimizeImages);
-exports.buildHTML = series(htmlOverview);
-
-exports.cleanDeliverFiles = series(cleanDeliverFiles);
-exports.moveReadyFiles = series(moveReadyFiles);
+exports.minifyImages = series(minifyImages);
+exports.useTinyPNG = series(useTinyPNG, copyLoader);
+exports.createHTMLOverview = series(createHTMLOverview);
 
 exports.watch = series(watchSource);
-// exports.default = parallel(minifyJS, minifyHTML, optimizeImages);
 
-// Not Optimize Images
-exports.default = parallel(minifyJS, minifyHTML, copyImages);
+// SWITCH THE DEFAULT OPTIMIZED IMAGES BY UNCOMMENT (CTRL + /) ONE OF TWO OPTIONS BELOW:
+
+// exports.default = parallel(minifyJS, minifyHTML, exports.minifyImages); // Option 1: Using native optimize images
+exports.default = parallel(minifyJS, minifyHTML, exports.useTinyPNG); // Option 2: Using tinyPNG images
