@@ -1,0 +1,31 @@
+{
+  "currentIndex": 0,
+  "accounts": [
+    {
+      "email": "toan.huynh@spring-production.com",
+      "used": 1,
+      "quota": 500
+    },
+    {
+      "email": "kami.shino1000@gmail.com",
+      "used": 0,
+      "quota": 500
+    },
+    {
+      "email": "kami.shino70411@gmail.com",
+      "used": 0,
+      "quota": 500
+    },
+    {
+      "email": "hilmugugne@vusra.com",
+      "used": 0,
+      "quota": 500
+    },
+    {
+      "email": "erla11@wmqrhabits.com",
+      "used": 0,
+      "quota": 500
+    }
+  ],
+  "lastUpdated": "2025-06-26T17:31:13.903Z"
+}
