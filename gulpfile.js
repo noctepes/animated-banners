@@ -80,7 +80,7 @@ function saveUsageData() {
         })),
         lastUpdated: new Date().toISOString()
     };
-    
+
     try {
         fs.writeFileSync(usageFilePath, JSON.stringify(data, null, 2));
     } catch (error) {
@@ -93,7 +93,7 @@ function getNextAvailableAccount() {
     if (tinyPNGAccounts[currentAccountIndex].used < tinyPNGAccounts[currentAccountIndex].quota) {
         return tinyPNGAccounts[currentAccountIndex];
     }
-    
+
     // Find next available account
     for (let i = 0; i < tinyPNGAccounts.length; i++) {
         const nextIndex = (currentAccountIndex + i + 1) % tinyPNGAccounts.length;
@@ -104,7 +104,7 @@ function getNextAvailableAccount() {
             return tinyPNGAccounts[currentAccountIndex];
         }
     }
-    
+
     // All accounts are over quota
     throw new Error('All TinyPNG accounts have exceeded their quota. Please wait for next month or add more accounts.');
 }
@@ -112,15 +112,14 @@ function getNextAvailableAccount() {
 function incrementUsage() {
     tinyPNGAccounts[currentAccountIndex].used++;
     saveUsageData();
-    
+
     const current = tinyPNGAccounts[currentAccountIndex];
     console.log(`Account ${current.email}: ${current.used}/${current.quota} images used`);
-    
+
     if (current.used >= current.quota) {
         console.log(`Account ${current.email} has reached quota limit!`);
     }
 }
-
 // Initialize usage data
 loadUsageData();
 
@@ -200,7 +199,7 @@ function minifyHTML() {
 function minifyImages() {
     return src(currentWorkingDir + "/**/*.{png,jpg,jpeg,gif,ico,svg}")
         .pipe(plumber({
-            errorHandler: function(error) {
+            errorHandler: function (error) {
                 console.error('Error in minifyImages:', error.message);
                 this.emit('end');
             }
@@ -221,25 +220,25 @@ function minifyImages() {
 function useTinyPNG() {
     return new Promise((resolve, reject) => {
         let currentAccount;
-        
+
         try {
             currentAccount = getNextAvailableAccount();
         } catch (error) {
             return reject(error);
         }
-        
+
         console.log(`Using TinyPNG account: ${currentAccount.email}`);
-        
+
         const stream = src(currentWorkingDir + "/**/*.{png,jpg,jpeg}")
             .pipe(plumber({
-                errorHandler: function(error) {
+                errorHandler: function (error) {
                     console.error('Error in TinyPNG:', error.message);
-                    
+
                     // If quota exceeded, try next account
                     if (error.message.includes('quota') || error.message.includes('limit')) {
                         console.log('Quota exceeded, trying next account...');
                         incrementUsage(); // Mark current account as used up
-                        
+
                         try {
                             currentAccount = getNextAvailableAccount();
                             console.log(`Switched to account: ${currentAccount.email}`);
@@ -251,7 +250,7 @@ function useTinyPNG() {
                             return;
                         }
                     }
-                    
+
                     this.emit('end');
                 }
             }))
@@ -264,12 +263,12 @@ function useTinyPNG() {
                 })
             )
             .pipe(dest(currentProgressDir));
-            
+
         stream.on('end', () => {
             incrementUsage();
             resolve();
         });
-        
+
         stream.on('error', reject);
     });
 }
@@ -331,9 +330,9 @@ function copyImages() {
 const excludeFiles = [
     // Exclude processed files
     "!" + currentWorkingDir + "/**/*.js",
-    "!" + currentWorkingDir + "/**/*.html", 
+    "!" + currentWorkingDir + "/**/*.html",
     "!" + currentWorkingDir + "/**/*.{png,jpg,jpeg,gif,ico,svg}",
-    
+
     // Add your custom exclusions here:
     "!" + currentWorkingDir + "/**/*.psd",           // Photoshop files
     "!" + currentWorkingDir + "/**/*.ai",            // Illustrator files
@@ -356,7 +355,7 @@ const excludeFiles = [
     "!" + currentWorkingDir + "/**/*.scss",          // SCSS source files
     "!" + currentWorkingDir + "/**/*.less",          // LESS source files
     "!" + currentWorkingDir + "/**/*.ts",            // TypeScript source files
-    
+
     // Uncomment below lines if you want to exclude them:
     // "!" + currentWorkingDir + "/**/*.css",        // CSS files
     // "!" + currentWorkingDir + "/**/*.json",       // JSON files
