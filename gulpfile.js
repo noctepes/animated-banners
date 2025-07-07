@@ -17,34 +17,24 @@ const tinypng = require("gulp-tinypng-extended");
 const tinyPNGAccounts = [
     {
         email: "toan.huynh@spring-production.com",
-        key: "HCZ9GFy7z18gPrnSGy4t3vmVkK31qx8P",
-        used: 0,
-        quota: 500
+        key: "HCZ9GFy7z18gPrnSGy4t3vmVkK31qx8P"
     },
     {
         email: "kami.shino1000@gmail.com",
-        key: "b4jzygsdt58wLWF224sNhhJYD7p4KXt4",
-        used: 0,
-        quota: 500
+        key: "b4jzygsdt58wLWF224sNhhJYD7p4KXt4"
     },
     {
         email: "kami.shino70411@gmail.com",
-        key: "T2sQsq948BGZSCqvFCKC5dhgkPn9rmr2",
-        used: 0,
-        quota: 500
+        key: "T2sQsq948BGZSCqvFCKC5dhgkPn9rmr2"
     },
     // Temporary Email
     {
         email: "hilmugugne@vusra.com",
-        key: "HwW87YCYGlCyS6YB63scCcvqNmnlvs3X",
-        used: 0,
-        quota: 500
+        key: "HwW87YCYGlCyS6YB63scCcvqNmnlvs3X"
     },
     {
         email: "erla11@wmqrhabits.com",
-        key: "CplxXxkJhP1TS0wL97DVrrk2zh1jMYlS",
-        used: 0,
-        quota: 500
+        key: "CplxXxkJhP1TS0wL97DVrrk2zh1jMYlS"
     },
 ];
 
@@ -60,13 +50,25 @@ function loadUsageData() {
             data.accounts.forEach((account, index) => {
                 if (tinyPNGAccounts[index]) {
                     tinyPNGAccounts[index].used = account.used || 0;
+                    tinyPNGAccounts[index].quota = account.quota || 500;
                 }
             });
             currentAccountIndex = data.currentIndex || 0;
             console.log(`Loaded usage data. Current account: ${currentAccountIndex}`);
+        } else {
+            // Initialize with default values if no saved data
+            tinyPNGAccounts.forEach(account => {
+                account.used = 0;
+                account.quota = 500;
+            });
         }
     } catch (error) {
         console.log('Could not load usage data, starting fresh');
+        // Initialize with default values on error
+        tinyPNGAccounts.forEach(account => {
+            account.used = 0;
+            account.quota = 500;
+        });
     }
 }
 
@@ -80,7 +82,7 @@ function saveUsageData() {
         })),
         lastUpdated: new Date().toISOString()
     };
-    
+
     try {
         fs.writeFileSync(usageFilePath, JSON.stringify(data, null, 2));
     } catch (error) {
@@ -93,7 +95,7 @@ function getNextAvailableAccount() {
     if (tinyPNGAccounts[currentAccountIndex].used < tinyPNGAccounts[currentAccountIndex].quota) {
         return tinyPNGAccounts[currentAccountIndex];
     }
-    
+
     // Find next available account
     for (let i = 0; i < tinyPNGAccounts.length; i++) {
         const nextIndex = (currentAccountIndex + i + 1) % tinyPNGAccounts.length;
@@ -104,7 +106,7 @@ function getNextAvailableAccount() {
             return tinyPNGAccounts[currentAccountIndex];
         }
     }
-    
+
     // All accounts are over quota
     throw new Error('All TinyPNG accounts have exceeded their quota. Please wait for next month or add more accounts.');
 }
@@ -112,15 +114,14 @@ function getNextAvailableAccount() {
 function incrementUsage() {
     tinyPNGAccounts[currentAccountIndex].used++;
     saveUsageData();
-    
+
     const current = tinyPNGAccounts[currentAccountIndex];
     console.log(`Account ${current.email}: ${current.used}/${current.quota} images used`);
-    
+
     if (current.used >= current.quota) {
         console.log(`Account ${current.email} has reached quota limit!`);
     }
 }
-
 // Initialize usage data
 loadUsageData();
 
@@ -129,11 +130,11 @@ loadUsageData();
 /*=====  Start of Setup project folder path  ======*/
 
 const folderPath = {
-    brief: "1. Src",
-    working: "2. Working",
-    progress: "2b. Progress",
-    done: "3. Done",
-    delivery: "4. Delivery",
+    brief: "1_Src",
+    working: "2_Working",
+    progress: "2b_Progress",
+    done: "3_Done",
+    delivery: "4_Delivery",
 };
 
 const currentProject = {
@@ -200,7 +201,7 @@ function minifyHTML() {
 function minifyImages() {
     return src(currentWorkingDir + "/**/*.{png,jpg,jpeg,gif,ico,svg}")
         .pipe(plumber({
-            errorHandler: function(error) {
+            errorHandler: function (error) {
                 console.error('Error in minifyImages:', error.message);
                 this.emit('end');
             }
@@ -209,7 +210,7 @@ function minifyImages() {
         .pipe(
             imagemin([
                 imagemin.gifsicle({ interlaced: true }),
-                imagemin.mozjpeg({ quality: 85, progressive: true }),
+                imagemin.mozjpeg({ quality: 80, progressive: true }),
                 imagemin.optipng({ optimizationLevel: 3 }), // Reduced from 6 to 3 for better compatibility
             ], {
                 verbose: true // Enable verbose logging to see what's happening
@@ -221,25 +222,25 @@ function minifyImages() {
 function useTinyPNG() {
     return new Promise((resolve, reject) => {
         let currentAccount;
-        
+
         try {
             currentAccount = getNextAvailableAccount();
         } catch (error) {
             return reject(error);
         }
-        
+
         console.log(`Using TinyPNG account: ${currentAccount.email}`);
-        
+
         const stream = src(currentWorkingDir + "/**/*.{png,jpg,jpeg}")
             .pipe(plumber({
-                errorHandler: function(error) {
+                errorHandler: function (error) {
                     console.error('Error in TinyPNG:', error.message);
-                    
+
                     // If quota exceeded, try next account
                     if (error.message.includes('quota') || error.message.includes('limit')) {
                         console.log('Quota exceeded, trying next account...');
                         incrementUsage(); // Mark current account as used up
-                        
+
                         try {
                             currentAccount = getNextAvailableAccount();
                             console.log(`Switched to account: ${currentAccount.email}`);
@@ -251,7 +252,7 @@ function useTinyPNG() {
                             return;
                         }
                     }
-                    
+
                     this.emit('end');
                 }
             }))
@@ -264,12 +265,12 @@ function useTinyPNG() {
                 })
             )
             .pipe(dest(currentProgressDir));
-            
+
         stream.on('end', () => {
             incrementUsage();
             resolve();
         });
-        
+
         stream.on('error', reject);
     });
 }
@@ -331,9 +332,9 @@ function copyImages() {
 const excludeFiles = [
     // Exclude processed files
     "!" + currentWorkingDir + "/**/*.js",
-    "!" + currentWorkingDir + "/**/*.html", 
+    "!" + currentWorkingDir + "/**/*.html",
     "!" + currentWorkingDir + "/**/*.{png,jpg,jpeg,gif,ico,svg}",
-    
+
     // Add your custom exclusions here:
     "!" + currentWorkingDir + "/**/*.psd",           // Photoshop files
     "!" + currentWorkingDir + "/**/*.ai",            // Illustrator files
@@ -356,7 +357,7 @@ const excludeFiles = [
     "!" + currentWorkingDir + "/**/*.scss",          // SCSS source files
     "!" + currentWorkingDir + "/**/*.less",          // LESS source files
     "!" + currentWorkingDir + "/**/*.ts",            // TypeScript source files
-    
+
     // Uncomment below lines if you want to exclude them:
     // "!" + currentWorkingDir + "/**/*.css",        // CSS files
     // "!" + currentWorkingDir + "/**/*.json",       // JSON files
@@ -384,8 +385,11 @@ function copyOtherFiles() {
 exports.copyImages = series(copyImages);
 exports.copyOtherFiles = series(copyOtherFiles);
 
-// SWITCH THE DEFAULT TASK BY UNCOMMENT (CTRL + /) ONE OF THE OPTIONS BELOW:
+// Default: Minify JS/HTML, copy images & other files
+//exports.default = parallel(minifyJS, minifyHTML, copyImages);
 
-exports.default = parallel(minifyJS, minifyHTML, copyImages); // Default: Minify JS/HTML, copy images & other files
-//exports.default = parallel(minifyJS, minifyHTML, exports.minifyImages); // Option 1: Using native optimize images
-//exports.default = parallel(minifyJS, minifyHTML, exports.useTinyPNG); // Option 2: Using tinyPNG images
+// Option 1: Using native optimize images
+exports.default = parallel(minifyJS, minifyHTML, exports.minifyImages);
+
+// Option 2: Using tinyPNG images
+//exports.default = parallel(minifyJS, minifyHTML, exports.useTinyPNG);
