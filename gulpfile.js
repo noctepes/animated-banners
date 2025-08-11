@@ -385,11 +385,99 @@ function copyOtherFiles() {
 exports.copyImages = series(copyImages);
 exports.copyOtherFiles = series(copyOtherFiles);
 
-// Default: Minify JS/HTML, copy images & other files
+function minifyJPGOnly() {
+    return src(currentWorkingDir + "/**/*.{jpg,jpeg}")
+        .pipe(plumber({
+            errorHandler: function(error) {
+                console.error('Error in minifyJPGOnly:', error.message);
+                this.emit('end');
+            }
+        }))
+        .pipe(newer(currentProgressDir))
+        .pipe(
+            imagemin([
+                imagemin.mozjpeg({ quality: 80, progressive: true })
+            ], {
+                verbose: true
+            })
+        )
+        .pipe(dest(currentProgressDir));
+}
+
+function tinyPNGOnly() {
+    return new Promise((resolve, reject) => {
+        let currentAccount = getNextAvailableAccount();
+        
+        const stream = src(currentWorkingDir + "/**/*.png")
+            .pipe(plumber({
+                errorHandler: function(error) {
+                    console.error('Error in TinyPNG:', error.message);
+                    this.emit('end');
+                }
+            }))
+            .pipe(newer(currentProgressDir))
+            .pipe(
+                tinypng({
+                    key: currentAccount.key,
+                    log: true,
+                    summarise: true,
+                })
+            )
+            .pipe(dest(currentProgressDir));
+
+        stream.on('end', () => {
+            incrementUsage();
+            resolve();
+        });
+
+        stream.on('error', reject);
+    });
+}
+
+function copyGIFOnly() {
+    return src(currentWorkingDir + "/**/*.gif")
+        .pipe(plumber())
+        .pipe(newer(currentProgressDir))
+        .pipe(dest(currentProgressDir));
+}
+
+function copyPNGOnly() {
+    return src(currentWorkingDir + "/**/*.png")
+        .pipe(plumber())
+        .pipe(newer(currentProgressDir))
+        .pipe(dest(currentProgressDir));
+}
+
+// Option 3: Optimize JPG with imagemin, PNG with tinyPNG, copy GIF
+exports.optimizeHybrid = parallel(
+    minifyJS, 
+    minifyHTML, 
+    minifyJPGOnly,
+    tinyPNGOnly,
+    copyGIFOnly
+);
+
+// Option 4: Optimize JPG with imagemin, copy PNG and GIF directly
+exports.optimizeLight = parallel(
+    minifyJS,
+    minifyHTML,
+    minifyJPGOnly,
+    copyPNGOnly,
+    copyGIFOnly
+);
+
+// Comment all other default exports and use one of these:
+// Default: Basic copy only
 //exports.default = parallel(minifyJS, minifyHTML, copyImages);
 
 // Option 1: Using native optimize images
-exports.default = parallel(minifyJS, minifyHTML, exports.minifyImages);
+//exports.default = parallel(minifyJS, minifyHTML, exports.minifyImages);
 
 // Option 2: Using tinyPNG images
 //exports.default = parallel(minifyJS, minifyHTML, exports.useTinyPNG);
+
+// Option 3: Hybrid (JPG: imagemin, PNG: tinyPNG, GIF: copy)
+//exports.default = exports.optimizeHybrid;
+
+// Option 4: Light (JPG: imagemin, PNG: copy, GIF: copy)
+exports.default = exports.optimizeLight;
