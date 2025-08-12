@@ -17,34 +17,24 @@ const tinypng = require("gulp-tinypng-extended");
 const tinyPNGAccounts = [
     {
         email: "toan.huynh@spring-production.com",
-        key: "HCZ9GFy7z18gPrnSGy4t3vmVkK31qx8P",
-        used: 0,
-        quota: 500
+        key: "HCZ9GFy7z18gPrnSGy4t3vmVkK31qx8P"
     },
     {
         email: "kami.shino1000@gmail.com",
-        key: "b4jzygsdt58wLWF224sNhhJYD7p4KXt4",
-        used: 0,
-        quota: 500
+        key: "b4jzygsdt58wLWF224sNhhJYD7p4KXt4"
     },
     {
         email: "kami.shino70411@gmail.com",
-        key: "T2sQsq948BGZSCqvFCKC5dhgkPn9rmr2",
-        used: 0,
-        quota: 500
+        key: "T2sQsq948BGZSCqvFCKC5dhgkPn9rmr2"
     },
     // Temporary Email
     {
         email: "hilmugugne@vusra.com",
-        key: "HwW87YCYGlCyS6YB63scCcvqNmnlvs3X",
-        used: 0,
-        quota: 500
+        key: "HwW87YCYGlCyS6YB63scCcvqNmnlvs3X"
     },
     {
         email: "erla11@wmqrhabits.com",
-        key: "CplxXxkJhP1TS0wL97DVrrk2zh1jMYlS",
-        used: 0,
-        quota: 500
+        key: "CplxXxkJhP1TS0wL97DVrrk2zh1jMYlS"
     },
 ];
 
@@ -60,13 +50,25 @@ function loadUsageData() {
             data.accounts.forEach((account, index) => {
                 if (tinyPNGAccounts[index]) {
                     tinyPNGAccounts[index].used = account.used || 0;
+                    tinyPNGAccounts[index].quota = account.quota || 500;
                 }
             });
             currentAccountIndex = data.currentIndex || 0;
             console.log(`Loaded usage data. Current account: ${currentAccountIndex}`);
+        } else {
+            // Initialize with default values if no saved data
+            tinyPNGAccounts.forEach(account => {
+                account.used = 0;
+                account.quota = 500;
+            });
         }
     } catch (error) {
         console.log('Could not load usage data, starting fresh');
+        // Initialize with default values on error
+        tinyPNGAccounts.forEach(account => {
+            account.used = 0;
+            account.quota = 500;
+        });
     }
 }
 
@@ -128,11 +130,11 @@ loadUsageData();
 /*=====  Start of Setup project folder path  ======*/
 
 const folderPath = {
-    brief: "1. Src",
-    working: "2. Working",
-    progress: "2b. Progress",
-    done: "3. Done",
-    delivery: "4. Delivery",
+    brief: "1_Src",
+    working: "2_Working",
+    progress: "2b_Progress",
+    done: "3_Done",
+    delivery: "4_Delivery",
 };
 
 const currentProject = {
@@ -208,7 +210,7 @@ function minifyImages() {
         .pipe(
             imagemin([
                 imagemin.gifsicle({ interlaced: true }),
-                imagemin.mozjpeg({ quality: 85, progressive: true }),
+                imagemin.mozjpeg({ quality: 80, progressive: true }),
                 imagemin.optipng({ optimizationLevel: 3 }), // Reduced from 6 to 3 for better compatibility
             ], {
                 verbose: true // Enable verbose logging to see what's happening
@@ -383,8 +385,99 @@ function copyOtherFiles() {
 exports.copyImages = series(copyImages);
 exports.copyOtherFiles = series(copyOtherFiles);
 
-// SWITCH THE DEFAULT TASK BY UNCOMMENT (CTRL + /) ONE OF THE OPTIONS BELOW:
+function minifyJPGOnly() {
+    return src(currentWorkingDir + "/**/*.{jpg,jpeg}")
+        .pipe(plumber({
+            errorHandler: function(error) {
+                console.error('Error in minifyJPGOnly:', error.message);
+                this.emit('end');
+            }
+        }))
+        .pipe(newer(currentProgressDir))
+        .pipe(
+            imagemin([
+                imagemin.mozjpeg({ quality: 80, progressive: true })
+            ], {
+                verbose: true
+            })
+        )
+        .pipe(dest(currentProgressDir));
+}
 
-exports.default = parallel(minifyJS, minifyHTML, copyImages); // Default: Minify JS/HTML, copy images & other files
-//exports.default = parallel(minifyJS, minifyHTML, exports.minifyImages); // Option 1: Using native optimize images
-//exports.default = parallel(minifyJS, minifyHTML, exports.useTinyPNG); // Option 2: Using tinyPNG images
+function tinyPNGOnly() {
+    return new Promise((resolve, reject) => {
+        let currentAccount = getNextAvailableAccount();
+        
+        const stream = src(currentWorkingDir + "/**/*.png")
+            .pipe(plumber({
+                errorHandler: function(error) {
+                    console.error('Error in TinyPNG:', error.message);
+                    this.emit('end');
+                }
+            }))
+            .pipe(newer(currentProgressDir))
+            .pipe(
+                tinypng({
+                    key: currentAccount.key,
+                    log: true,
+                    summarise: true,
+                })
+            )
+            .pipe(dest(currentProgressDir));
+
+        stream.on('end', () => {
+            incrementUsage();
+            resolve();
+        });
+
+        stream.on('error', reject);
+    });
+}
+
+function copyGIFOnly() {
+    return src(currentWorkingDir + "/**/*.gif")
+        .pipe(plumber())
+        .pipe(newer(currentProgressDir))
+        .pipe(dest(currentProgressDir));
+}
+
+function copyPNGOnly() {
+    return src(currentWorkingDir + "/**/*.png")
+        .pipe(plumber())
+        .pipe(newer(currentProgressDir))
+        .pipe(dest(currentProgressDir));
+}
+
+// Option 3: Optimize JPG with imagemin, PNG with tinyPNG, copy GIF
+exports.optimizeHybrid = parallel(
+    minifyJS, 
+    minifyHTML, 
+    minifyJPGOnly,
+    tinyPNGOnly,
+    copyGIFOnly
+);
+
+// Option 4: Optimize JPG with imagemin, copy PNG and GIF directly
+exports.optimizeLight = parallel(
+    minifyJS,
+    minifyHTML,
+    minifyJPGOnly,
+    copyPNGOnly,
+    copyGIFOnly
+);
+
+// Comment all other default exports and use one of these:
+// Default: Basic copy only
+//exports.default = parallel(minifyJS, minifyHTML, copyImages);
+
+// Option 1: Using native optimize images
+//exports.default = parallel(minifyJS, minifyHTML, exports.minifyImages);
+
+// Option 2: Using tinyPNG images
+//exports.default = parallel(minifyJS, minifyHTML, exports.useTinyPNG);
+
+// Option 3: Hybrid (JPG: imagemin, PNG: tinyPNG, GIF: copy)
+//exports.default = exports.optimizeHybrid;
+
+// Option 4: Light (JPG: imagemin, PNG: copy, GIF: copy)
+exports.default = exports.optimizeLight;
