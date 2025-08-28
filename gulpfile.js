@@ -16,25 +16,27 @@ const tinypng = require("gulp-tinypng-extended");
 // Free tinyPNG accounts
 const tinyPNGAccounts = [
     {
-        email: "toan.huynh@spring-production.com",
-        key: "HCZ9GFy7z18gPrnSGy4t3vmVkK31qx8P"
+        email: "tung.tran@spring-cc.com",
+        key: "vJWmHBPMYNcdwVSnR36M5x7L1GtGJ9Rh"
     },
     {
-        email: "kami.shino1000@gmail.com",
-        key: "b4jzygsdt58wLWF224sNhhJYD7p4KXt4"
+        email: "tung.tdn@outlook.com",
+        key: "vEz4l7kZimZhcubnJecuzmTLnM9hS89S"
+        
     },
+    {
+        email: "toan.huynh@spring-production.com",
+        key: "HCZ9GFy7z18gPrnSGy4t3vmVkK31qx8P"
+        
+    },
+    // Temporary Email
     {
         email: "kami.shino70411@gmail.com",
         key: "T2sQsq948BGZSCqvFCKC5dhgkPn9rmr2"
     },
-    // Temporary Email
     {
-        email: "hilmugugne@vusra.com",
-        key: "HwW87YCYGlCyS6YB63scCcvqNmnlvs3X"
-    },
-    {
-        email: "erla11@wmqrhabits.com",
-        key: "CplxXxkJhP1TS0wL97DVrrk2zh1jMYlS"
+         email: "kami.shino1000@gmail.com",
+        key: "b4jzygsdt58wLWF224sNhhJYD7p4KXt4"
     },
 ];
 
@@ -210,7 +212,7 @@ function minifyImages() {
         .pipe(
             imagemin([
                 imagemin.gifsicle({ interlaced: true }),
-                imagemin.mozjpeg({ quality: 80, progressive: true }),
+                imagemin.mozjpeg({ quality: 75, progressive: true }),
                 imagemin.optipng({ optimizationLevel: 3 }), // Reduced from 6 to 3 for better compatibility
             ], {
                 verbose: true // Enable verbose logging to see what's happening
@@ -396,7 +398,7 @@ function minifyJPGOnly() {
         .pipe(newer(currentProgressDir))
         .pipe(
             imagemin([
-                imagemin.mozjpeg({ quality: 80, progressive: true })
+                imagemin.mozjpeg({ quality: 75, progressive: true })
             ], {
                 verbose: true
             })
@@ -476,8 +478,8 @@ exports.optimizeLight = parallel(
 // Option 2: Using tinyPNG images
 //exports.default = parallel(minifyJS, minifyHTML, exports.useTinyPNG);
 
-// Option 3: Hybrid (JPG: imagemin, PNG: tinyPNG, GIF: copy)
-//exports.default = exports.optimizeHybrid;
+// Option 3: Hybrid (JPG: imagemin, PNG: tinyPNG)
+exports.default = exports.optimizeHybrid;
 
-// Option 4: Light (JPG: imagemin, PNG: copy, GIF: copy)
-exports.default = exports.optimizeLight;
+// Option 4: Light (JPG: imagemin, PNG: copy)
+//exports.default = exports.optimizeLight;

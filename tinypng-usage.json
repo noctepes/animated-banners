@@ -2,12 +2,17 @@
   "currentIndex": 0,
   "accounts": [
     {
-      "email": "toan.huynh@spring-production.com",
-      "used": 1,
+      "email": "tung.tran@spring-cc.com",
+      "used": 28,
       "quota": 500
     },
     {
-      "email": "kami.shino1000@gmail.com",
+      "email": "tung.tdn@outlook.com",
+      "used": 0,
+      "quota": 500
+    },
+    {
+      "email": "toan.huynh@spring-production.com",
       "used": 0,
       "quota": 500
     },
@@ -17,15 +22,10 @@
       "quota": 500
     },
     {
-      "email": "hilmugugne@vusra.com",
-      "used": 0,
-      "quota": 500
-    },
-    {
-      "email": "erla11@wmqrhabits.com",
+      "email": "kami.shino1000@gmail.com",
       "used": 0,
       "quota": 500
     }
   ],
-  "lastUpdated": "2025-06-26T17:31:13.903Z"
+  "lastUpdated": "2025-08-27T11:34:03.229Z"
 }
